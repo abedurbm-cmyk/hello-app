@@ -1,0 +1,32 @@
+workflows:
+  hello-simulator:
+    name: Hello (simulator, unsigned)
+    instance_type: mac_mini_m2
+    max_build_duration: 20
+    environment:
+      xcode: latest
+    scripts:
+      - name: Project বানাও
+        script: |
+          brew install xcodegen
+          xcodegen generate
+      - name: Build
+        script: |
+          xcodebuild -project HelloApp.xcodeproj \
+            -scheme HelloApp \
+            -sdk iphonesimulator \
+            -destination 'generic/platform=iOS Simulator' \
+            -derivedDataPath build \
+            CODE_SIGNING_ALLOWED=NO \
+            build
+      - name: Simulator
+        script: |
+          UDID=$(xcrun simctl list devices available | grep -m1 "iPhone" | grep -oE '[0-9A-F-]{36}')
+          xcrun simctl boot "$UDID"
+          xcrun simctl install "$UDID" build/Build/Products/Debug-iphonesimulator/HelloApp.app
+          xcrun simctl launch "$UDID" com.example.helloapp
+          sleep 10
+          xcrun simctl io "$UDID" screenshot hello.png
+    artifacts:
+      - hello.png
+      - build/Build/Products/Debug-iphonesimulator/*.app
